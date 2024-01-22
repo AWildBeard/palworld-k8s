@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: palworld
+  labels:
+    game: palworld
+spec:
+  type: LoadBalancer
+  selector:
+    game: palworld
+  ports:
+  - port: 8211
+    protocol: UDP
+    targetPort: 8211

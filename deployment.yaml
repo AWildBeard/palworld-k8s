@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: palworld
+  labels:
+    game: palworld
+spec:
+  selector:
+    matchLabels:
+      game: palworld
+  template:
+    metadata:
+      labels:
+        game: palworld
+    spec:
+      securityContext:
+        fsGroup: 1000
+      automountServiceAccountToken: false
+      initContainers:
+      - image: cm2network/steamcmd:latest
+        name: update-palworld
+        volumeMounts:
+        - name: palworld-files
+          readOnly: false
+          mountPath: /home/steam/palworld
+        args:
+        - /bin/bash
+        - -c
+        - "./steamcmd.sh +force_install_dir /home/steam/palworld +login anonymous +app_update 2394010 validate +quit"
+      containers:
+      - image: cm2network/steamcmd:latest
+        name: palworld
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8211
+          protocol: UDP
+        volumeMounts:
+        - name: palworld-files
+          readOnly: false
+          mountPath: /home/steam/palworld
+        - name: palworld-config
+          readOnly: true
+          mountPath: /home/steam/palworld/Pal/Saved/Config/LinuxServer/
+        args:
+        - /bin/bash
+        - -c
+        - "cd ~/palworld && ./PalServer.sh"
+      volumes:
+      - name: palworld-files
+        persistentVolumeClaim:
+          claimName: palworld-files
+          readOnly: false
+      - name: palworld-config
+        configMap:
+          name: palworld-config
+          defaultMode: 0660
+          items:
+            - key: GameUserSettings.ini
+              path: ./GameUserSettings.ini
+              mode: 0440
+            - key: PalWorldSettings.ini
+              path: ./PalWorldSettings.ini
+              mode: 0440
